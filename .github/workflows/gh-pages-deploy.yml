@@ -1,0 +1,55 @@
+name: Build and Deploy UniteHQ Digest to gh-pages
+
+on:
+  push:
+    branches:
+      - feature/gh-pages-auto-deploy
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          npm ci || npm install
+
+      - name: Build static site
+        run: |
+          # If there's a docs build script, use it; otherwise use simple copy
+          if [ -f package.json ] && jq -r '.scripts["docs:build"]' package.json >/dev/null 2>&1; then
+            npm run docs:build || true
+          fi
+          # ensure public/ exists
+          ls -la || true
+
+      - name: Prepare publish folder
+        run: |
+          # prefer build/ then public/
+          if [ -d build ]; then
+            cp -r build/* public/ || true
+          fi
+          if [ ! -d public ]; then
+            mkdir -p public
+            echo '<!doctype html><html><body><h1>UniteHQ Digest (placeholder)</h1></body></html>' > public/index.html
+          fi
+          ls -la public | sed -n '1,120p'
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          user_name: 'clawdbot'
+          user_email: 'clawdbot@example.com'
+          keep_files: false
