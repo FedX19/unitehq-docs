@@ -1,0 +1,10 @@
+{
+  "name": "unitehq-docs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "mkdir -p dist && cp -R site-src/* dist/ || true",
+    "start": "npx http-server dist -p 8080"
+  },
+  "devDependencies": {}
+}
