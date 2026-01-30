@@ -1,0 +1,46 @@
+"" # placeholder
+PNG || true
+cat > public/icons/icon-512.png <<'PNG'
+"" # placeholder
+PNG || true
+
+# add vercel.json
+cat > vercel.json <<'JSON'
+{
+  "builds": [
+    { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "build" } }
+  ]
+}
+JSON
+
+# update docusaurus config headTags for manifest if not present
+python3 - <<'PY'
+from pathlib import Path
+p=Path('docusaurus.config.js')
+s=p.read_text()
+if 'manifest.webmanifest' not in s:
+    inject='''
+  headTags: [
+    {tagName: 'link', attributes: {rel: 'manifest', href: '/manifest.webmanifest'}},
+    {tagName: 'meta', attributes: {name: 'theme-color', content: '#1a73e8'}}
+  ],
+'''
+    s=s.replace('  presets: [', inject+'  presets: [')
+    p.write_text(s)
+    print('updated docusaurus.config.js')
+else:
+    print('manifest already present')
+PY
+
+# install deps (use npm to be safe)
+if [ -f package-lock.json ] || command -v pnpm >/dev/null 2>&1; then
+  if command -v pnpm >/dev/null 2>&1; then pnpm install; else npm install; fi
+else
+  npm install
+fi
+
+# build
+npm run docs:build
+
+# deploy
+vercel --prod --yes
